@@ -2,22 +2,17 @@ package z1oyas.MyGame;
 
 import com.badlogic.gdx.ApplicationAdapter;
 import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
-import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.utils.ScreenUtils;
-import z1oyas.MyGame.KeyboardAdapter;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 
 public class Main extends ApplicationAdapter {
     SpriteBatch batch;
     float delta;
-    private Person me;
-    private final List<Person> enemies = new ArrayList<>();
+    private Hero me;
+    private final List<Hero> enemies = new ArrayList<>();
 
     private KeyboardAdapter inputProcessor = new KeyboardAdapter();
 
@@ -26,7 +21,7 @@ public class Main extends ApplicationAdapter {
         Gdx.input.setInputProcessor(inputProcessor);
         batch = new SpriteBatch();
 
-        me = new Person(100, 200,"cheersSprite.png","sprite.png");
+        me = new Hero(100, 200,"cheersSprite.png","sprite.png");
 
 //        List<Person> newEnemies = IntStream.range(0, 5)
 //            .mapToObj(i -> {
