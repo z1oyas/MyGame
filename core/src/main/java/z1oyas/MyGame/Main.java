@@ -10,8 +10,8 @@ import java.util.List;
 
 public class Main extends ApplicationAdapter {
     SpriteBatch batch;
-    float delta;
     private Hero me;
+    private  Tower tower;
     private final List<Hero> enemies = new ArrayList<>();
 
     private KeyboardAdapter inputProcessor = new KeyboardAdapter();
@@ -22,7 +22,7 @@ public class Main extends ApplicationAdapter {
         batch = new SpriteBatch();
 
         me = new Hero(100, 200,"cheersSprite.png","sprite.png");
-
+        tower = new Tower(500,500,"tower.png","towerfind.png");
 //        List<Person> newEnemies = IntStream.range(0, 5)
 //            .mapToObj(i -> {
 //                int x = MathUtils.random(Gdx.graphics.getWidth());
@@ -37,10 +37,12 @@ public class Main extends ApplicationAdapter {
     @Override
     public void render () {
         me.moveTo(inputProcessor.getDirection());
+        tower.findHeroChecker(me.getBoundares());
         //me.rotateTo(inputProcessor.getMousePos());
         ScreenUtils.clear(1, 1, 1, 1);
         batch.begin();
         me.render(batch);
+        tower.render(batch);
 //        enemies.forEach(enemy -> {
 //            enemy.render(batch);
 ////            enemy.rotateTo(me.getPosition());
@@ -52,5 +54,6 @@ public class Main extends ApplicationAdapter {
     public void dispose () {
         batch.dispose();
         me.dispose();
+        tower.dispose();
     }
 }

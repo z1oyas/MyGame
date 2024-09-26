@@ -5,9 +5,9 @@ import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.Animation;
 import com.badlogic.gdx.graphics.g2d.Batch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
+import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.math.Vector2;
 
-//todo сделать обстрактный класс для создания персонажей, и врагов сделать
 // класс объектов на поле: конфеты
 
 public class Hero implements Person, Animated {
@@ -21,10 +21,10 @@ public class Hero implements Person, Animated {
     private final Vector2 angle = new Vector2();
     private float stateTime;
     Texture movingSheet;
+    Rectangle form;
 
     private final static int FRAME_COLS = 4;
     private final static int FRAME_ROWS = 2;
-    Animation<TextureRegion> MoveAnimation;
 
     private boolean isMoving;
     private boolean isForvard;
@@ -34,8 +34,9 @@ public class Hero implements Person, Animated {
     // сделать так, чтобы у каждого было разное кол во движений
     public Hero(float x, float y, String textureCheerName, String textureWalkName) {
         //подготавливаем все движения персонажей
-        walkAnimation = makeAnimationPersona(textureWalkName,FRAME_COLS,FRAME_ROWS);
-        cheersAnimation = makeAnimationPersona(textureCheerName, FRAME_COLS,FRAME_ROWS);
+        form = new Rectangle(x,y,size,size);
+        walkAnimation = makeAnimationPersona(textureWalkName,FRAME_COLS,FRAME_ROWS, 0.25f);
+        cheersAnimation = makeAnimationPersona(textureCheerName, FRAME_COLS,FRAME_ROWS,0.25f);
 //        texture = new Texture(textureName);
 //        textureRegion = new TextureRegion(texture);
         stateTime = 0f;
@@ -84,7 +85,10 @@ public class Hero implements Person, Animated {
             flipDirectionFrame();
             isForvard = false;
         }
-        if (isMoving)  position.add(direction);
+        if (isMoving)  {
+            position.add(direction);
+            form.setPosition(position);//подвинули наш квадрат
+        }
     }
 
 //    public void rotateTo(Vector2 mousePos) {
@@ -99,6 +103,8 @@ public class Hero implements Person, Animated {
     public Vector2 getPosition() {
         return position;
     }
-
+    public Rectangle getBoundares() {
+        return form;
+    }
 
 }

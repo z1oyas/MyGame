@@ -9,7 +9,7 @@ public interface Animated
 {
     void  moveTo(Vector2 direction);
 
-    default Animation<TextureRegion> makeAnimationPersona(String personaMovingPath, int FRAME_COLS, int FRAME_ROWS) {
+    default Animation<TextureRegion> makeAnimationPersona(String personaMovingPath, int FRAME_COLS, int FRAME_ROWS, float frameDuration) {
         //sprite.png
         Texture movingSheet = null;
 
@@ -28,7 +28,7 @@ public interface Animated
                 n++;
             }
         }
-        return new Animation<>(0.25f, frames);
+        return new Animation<>(frameDuration, frames);
     }
     default TextureRegion renderAnimationPersona(Animation<TextureRegion> a, float deltaTime){
         return a.getKeyFrame(deltaTime, true);
