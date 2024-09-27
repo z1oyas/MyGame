@@ -35,8 +35,8 @@ public class Hero implements Person, Animated {
     public Hero(float x, float y, String textureCheerName, String textureWalkName) {
         //подготавливаем все движения персонажей
         form = new Rectangle(x,y,size,size);
-        walkAnimation = makeAnimationPersona(textureWalkName,FRAME_COLS,FRAME_ROWS, 0.25f);
-        cheersAnimation = makeAnimationPersona(textureCheerName, FRAME_COLS,FRAME_ROWS,0.25f);
+        walkAnimation = makeAnimationPersona(textureWalkName,FRAME_COLS,FRAME_ROWS, 0.15f);
+        cheersAnimation = makeAnimationPersona(textureCheerName, FRAME_COLS,FRAME_ROWS,0.15f);
 //        texture = new Texture(textureName);
 //        textureRegion = new TextureRegion(texture);
         stateTime = 0f;

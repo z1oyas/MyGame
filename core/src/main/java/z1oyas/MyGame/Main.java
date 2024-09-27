@@ -21,8 +21,8 @@ public class Main extends ApplicationAdapter {
         Gdx.input.setInputProcessor(inputProcessor);
         batch = new SpriteBatch();
 
-        me = new Hero(100, 200,"cheersSprite.png","sprite.png");
-        tower = new Tower(500,500,"tower.png","towerfind.png");
+        me = new Hero(100, 200,"cheersSprite1.png","sprite1.png");
+        tower = new Tower(500,500,"tower1.png","towerfind1.png");
 //        List<Person> newEnemies = IntStream.range(0, 5)
 //            .mapToObj(i -> {
 //                int x = MathUtils.random(Gdx.graphics.getWidth());
