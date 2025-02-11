@@ -2,7 +2,11 @@ package z1oyas.MyGame;
 
 import com.badlogic.gdx.ApplicationAdapter;
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+import com.badlogic.gdx.maps.tiled.TiledMap;
+import com.badlogic.gdx.maps.tiled.TmxMapLoader;
+import com.badlogic.gdx.maps.tiled.renderers.OrthogonalTiledMapRenderer;
 import com.badlogic.gdx.utils.ScreenUtils;
 
 import java.util.ArrayList;
@@ -13,16 +17,26 @@ public class Main extends ApplicationAdapter {
     private Hero me;
     private  Tower tower;
     private final List<Hero> enemies = new ArrayList<>();
+    float unitScale = 1 / 16f;
+    OrthogonalTiledMapRenderer renderer;
+    OrthographicCamera camera;
+    TiledMap map;
 
     private KeyboardAdapter inputProcessor = new KeyboardAdapter();
 
     @Override
     public void create () {
+        map = new TmxMapLoader().load("map_title.tmx");
+        renderer = new OrthogonalTiledMapRenderer(map, unitScale);
+
+        camera = new OrthographicCamera();
+        camera.setToOrtho(false, 50, 30);
+
         Gdx.input.setInputProcessor(inputProcessor);
         batch = new SpriteBatch();
 
-        me = new Hero(100, 200,"cheersSprite1.png","sprite1.png");
-        tower = new Tower(500,500,"tower1.png","towerfind1.png");
+        me = new Hero(10, 340,"cheersSprite1.png","sprite1.png");
+        tower = new Tower(600,300,"tower1.png","towerfind1.png");
 //        List<Person> newEnemies = IntStream.range(0, 5)
 //            .mapToObj(i -> {
 //                int x = MathUtils.random(Gdx.graphics.getWidth());
@@ -36,10 +50,16 @@ public class Main extends ApplicationAdapter {
 
     @Override
     public void render () {
+        ScreenUtils.clear(1, 1, 1, 1);
+
+        camera.update();
+        renderer.render();
+        renderer.setView(camera);
+
         me.moveTo(inputProcessor.getDirection());
         tower.findHeroChecker(me.getBoundares());
         //me.rotateTo(inputProcessor.getMousePos());
-        ScreenUtils.clear(1, 1, 1, 1);
+
         batch.begin();
         me.render(batch);
         tower.render(batch);
@@ -55,5 +75,7 @@ public class Main extends ApplicationAdapter {
         batch.dispose();
         me.dispose();
         tower.dispose();
+        renderer.dispose();
+        map.dispose();
     }
 }

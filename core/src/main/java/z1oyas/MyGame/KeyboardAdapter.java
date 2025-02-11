@@ -43,10 +43,10 @@ public class KeyboardAdapter extends InputAdapter {
     public Vector2 getDirection() {
         direction.set(0, 0);
 
-        if (leftPressed) direction.add(-5, 0);
-        if (rightPressed) direction.add(5, 0);
-        if (upPressed) direction.add(0, 5);
-        if (downPressed) direction.add(0, -5);
+        if (leftPressed) direction.add(-10, 0);
+        if (rightPressed) direction.add(10, 0);
+        if (upPressed) direction.add(0, 10);
+        if (downPressed) direction.add(0, -10);
 
         return direction;
     }
