@@ -1,7 +1,6 @@
 package z1oyas.MyGame;
 
 import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.Animation;
 import com.badlogic.gdx.graphics.g2d.Batch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
@@ -20,7 +19,6 @@ public class Hero implements Person, Animated {
     private final Vector2 position = new Vector2();
     private final Vector2 angle = new Vector2();
     private float stateTime;
-    Texture movingSheet;
     Rectangle form;
 
     private final static int FRAME_COLS = 4;
@@ -28,10 +26,7 @@ public class Hero implements Person, Animated {
 
     private boolean isMoving;
     private boolean isForvard;
-    //При создании объекта сразу делать ему спрайт шит готовый для рендереинга. То есть, вызывать для всех его спрайтов метод
-    //makeAnimationPersona. Далее, в moveTo переключать на движение, если есть оно
 
-    // сделать так, чтобы у каждого было разное кол во движений
     public Hero(float x, float y, String textureCheerName, String textureWalkName) {
         //подготавливаем все движения персонажей
         form = new Rectangle(x,y,size,size);
@@ -71,7 +66,18 @@ public class Hero implements Person, Animated {
 //
     @Override
     public void dispose() {
-        movingSheet.dispose();
+        if (walkAnimation != null) {
+            TextureRegion[] frames = walkAnimation.getKeyFrames();
+            if (frames != null && frames.length > 0 && frames[0] != null) {
+                frames[0].getTexture().dispose();
+            }
+        }
+        if (cheersAnimation != null) {
+            TextureRegion[] frames = cheersAnimation.getKeyFrames();
+            if (frames != null && frames.length > 0 && frames[0] != null) {
+                frames[0].getTexture().dispose();
+            }
+        }
     }
 
     public void moveTo(Vector2 direction) {

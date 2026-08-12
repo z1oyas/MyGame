@@ -1,7 +1,6 @@
 package z1oyas.MyGame;
 
 import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.Animation;
 import com.badlogic.gdx.graphics.g2d.Batch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
@@ -19,7 +18,6 @@ public class Tower implements Person, Animated{
     Animation<TextureRegion> findHeroMoving;
     float stateTime;
     boolean findHero;
-    Texture movingSheet;
     Rectangle form;
 
     public Tower(float x, float y, String TowerSpritePath, String TowerFindHeroPath){
@@ -52,8 +50,18 @@ public class Tower implements Person, Animated{
 // нафига? то есть текстура то в интерфейсе бьется
     @Override
     public void dispose() {
-        movingSheet.dispose();
-
+        if (movingTower != null) {
+            TextureRegion[] frames = movingTower.getKeyFrames();
+            if (frames != null && frames.length > 0 && frames[0] != null) {
+                frames[0].getTexture().dispose();
+            }
+        }
+        if (findHeroMoving != null) {
+            TextureRegion[] frames = findHeroMoving.getKeyFrames();
+            if (frames != null && frames.length > 0 && frames[0] != null) {
+                frames[0].getTexture().dispose();
+            }
+        }
     }
 
     public void moveTo(Vector2 direction) {

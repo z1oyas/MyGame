@@ -10,11 +10,9 @@ public interface Animated
     void  moveTo(Vector2 direction);
 
     default Animation<TextureRegion> makeAnimationPersona(String personaMovingPath, int FRAME_COLS, int FRAME_ROWS, float frameDuration) {
-        //sprite.png
-        Texture movingSheet = null;
+        if (personaMovingPath == null) return null;
 
-        if (!(personaMovingPath == null))
-            movingSheet = new Texture(personaMovingPath);
+        Texture movingSheet = new Texture(personaMovingPath);
 
         TextureRegion[][] tmp = TextureRegion.split(movingSheet,
             movingSheet.getWidth() / FRAME_COLS,
