@@ -47,8 +47,8 @@ public class Main extends ApplicationAdapter {
         Gdx.input.setInputProcessor(inputProcessor);
         batch = new SpriteBatch();
 
-        me = new Hero(10, 340,"cheersSprite1.png","sprite1.png");
-        tower = new Tower(600,300,"tower1.png","towerfind1.png");
+        me = new Hero(0, 17);
+        tower = new Tower(17, 18);
 //        List<Person> newEnemies = IntStream.range(0, 5)
 //            .mapToObj(i -> {
 //                int x = MathUtils.random(Gdx.graphics.getWidth());
@@ -65,12 +65,12 @@ public class Main extends ApplicationAdapter {
         ScreenUtils.clear(1, 1, 1, 1);
 
         me.moveTo(inputProcessor.getDirection());
-        tower.findHeroChecker(me.getBoundares());
+        tower.update(me.getBoundares());
 
-        // камера следует за героем (пиксели → мировые единицы)
+        // камера следует за героем (мировые единицы)
         camera.position.set(
-            me.getPosition().x * unitScale,
-            me.getPosition().y * unitScale,
+            me.getPosition().x,
+            me.getPosition().y,
             0
         );
 
@@ -94,9 +94,8 @@ public class Main extends ApplicationAdapter {
         renderer.setView(camera);
         renderer.render();
 
-        // проекция batch с учётом unitScale, чтобы пиксельные координаты
-        // спрайтов совпадали с мировыми координатами карты
-        batch.setProjectionMatrix(camera.combined.cpy().scale(unitScale, unitScale, 1f));
+        // проекция batch в мировых координатах (камера 50×30 world units)
+        batch.setProjectionMatrix(camera.combined);
 
         batch.begin();
         me.render(batch);
