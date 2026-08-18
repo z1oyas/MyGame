@@ -65,7 +65,22 @@ public class Main extends ApplicationAdapter {
         Gdx.input.setInputProcessor(inputProcessor);
         batch = new SpriteBatch();
 
-        me = new Hero(2f, 28f, walkableZones);
+        // Спавн героя в самой левой точке walkable-слоя.
+        float spawnX = Float.MAX_VALUE;
+        float spawnY = 0f;
+        for (Polygon zone : walkableZones) {
+            float[] verts = zone.getTransformedVertices();
+            for (int i = 0; i < verts.length; i += 2) {
+                if (verts[i] < spawnX) {
+                    spawnX = verts[i];
+                    spawnY = verts[i + 1];
+                }
+            }
+        }
+        // Clamp so hero doesn't spawn below map
+        spawnY = Math.max(spawnY, 0f);
+
+        me = new Hero(spawnX, spawnY, walkableZones);
         tower = new Tower(17, 18);
 //        List<Person> newEnemies = IntStream.range(0, 5)
 //            .mapToObj(i -> {
