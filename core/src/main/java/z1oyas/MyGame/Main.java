@@ -4,11 +4,15 @@ import com.badlogic.gdx.ApplicationAdapter;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+import com.badlogic.gdx.maps.MapLayer;
 import com.badlogic.gdx.maps.MapProperties;
+import com.badlogic.gdx.maps.objects.PolygonMapObject;
 import com.badlogic.gdx.maps.tiled.TiledMap;
 import com.badlogic.gdx.maps.tiled.TmxMapLoader;
 import com.badlogic.gdx.maps.tiled.renderers.OrthogonalTiledMapRenderer;
 import com.badlogic.gdx.math.MathUtils;
+import com.badlogic.gdx.math.Polygon;
+import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.ScreenUtils;
 
 import java.util.ArrayList;
@@ -41,13 +45,27 @@ public class Main extends ApplicationAdapter {
         mapWidthWorld = mapWidthTiles * tileWidth * unitScale;
         mapHeightWorld = mapHeightTiles * tileHeight * unitScale;
 
+        // Walkable-зоны: полигоны объектного слоя "walkable" (пиксели → мировые единицы).
+        Array<Polygon> walkableZones = new Array<>();
+        MapLayer walkableLayer = map.getLayers().get("walkable");
+        if (walkableLayer != null) {
+            for (PolygonMapObject obj : walkableLayer.getObjects().getByType(PolygonMapObject.class)) {
+                float[] px = obj.getPolygon().getTransformedVertices();
+                float[] world = new float[px.length];
+                for (int i = 0; i < px.length; i++) {
+                    world[i] = px[i] * unitScale;
+                }
+                walkableZones.add(new Polygon(world));
+            }
+        }
+
         camera = new OrthographicCamera();
         camera.setToOrtho(false, 50, 30);
 
         Gdx.input.setInputProcessor(inputProcessor);
         batch = new SpriteBatch();
 
-        me = new Hero(0, 17);
+        me = new Hero(2f, 28f, walkableZones);
         tower = new Tower(17, 18);
 //        List<Person> newEnemies = IntStream.range(0, 5)
 //            .mapToObj(i -> {

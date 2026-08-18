@@ -4,14 +4,17 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.g2d.Animation;
 import com.badlogic.gdx.graphics.g2d.Batch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
+import com.badlogic.gdx.math.Polygon;
 import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.math.Vector2;
+import com.badlogic.gdx.utils.Array;
 
 public class Hero implements Person {
 
     // Размер спрайта: отрисовка и коллизия совпадают (world units).
-    private static final float DRAW_W = 3f;
-    private static final float DRAW_H = 4f;
+    // Ширина 2f соответствует ширине walkable-коридора (~2 тайла).
+    private static final float DRAW_W = 2f;
+    private static final float DRAW_H = 3f;
 
     // Скорость движения (world units в секунду).
     private static final float SPEED = 5f;
@@ -22,11 +25,13 @@ public class Hero implements Person {
     private float stateTime;
 
     private final Vector2 position = new Vector2();
+    private final Array<Polygon> walkableZones;
     private Rectangle form;
     private boolean isMoving;
     private boolean isForward = true;
 
-    public Hero(float x, float y) {
+    public Hero(float x, float y, Array<Polygon> walkableZones) {
+        this.walkableZones = walkableZones;
         idleAnimation = AnimationLoader.fromFiles(0.25f,
             "gg2/idle1.png", "gg2/idle2.png");
         runAnimation = AnimationLoader.fromFiles(0.12f,
@@ -35,6 +40,14 @@ public class Hero implements Person {
 
         position.set(x, y);
         form = new Rectangle(x, y, DRAW_W, DRAW_H);
+
+        // Спавн вне walkable-зоны (по нижней кромке): предупреждение, но не блокируем спавн.
+        boolean spawnInside = isInsideWalkable(position.x, position.y)
+                           && isInsideWalkable(position.x + DRAW_W / 2f, position.y)
+                           && isInsideWalkable(position.x + DRAW_W, position.y);
+        if (!spawnInside) {
+            Gdx.app.log("Hero", "Спавн (" + x + ", " + y + ") вне walkable-зоны");
+        }
     }
 
     @Override
@@ -60,9 +73,31 @@ public class Hero implements Person {
 
         if (isMoving) {
             float delta = Gdx.graphics.getDeltaTime();
-            position.add(direction.x * SPEED * delta, direction.y * SPEED * delta);
+            float nx = position.x + direction.x * SPEED * delta;
+            float ny = position.y + direction.y * SPEED * delta;
+
+            // X axis — нижняя кромка (Y неизменна), 3 точки.
+            float bottomY = position.y;
+            boolean canX = isInsideWalkable(nx, bottomY)
+                        && isInsideWalkable(nx + DRAW_W / 2f, bottomY)
+                        && isInsideWalkable(nx + DRAW_W, bottomY);
+
+            // Y axis — новая нижняя кромка (X неизменна), 3 точки.
+            boolean canY = isInsideWalkable(position.x, ny)
+                        && isInsideWalkable(position.x + DRAW_W / 2f, ny)
+                        && isInsideWalkable(position.x + DRAW_W, ny);
+
+            if (canX) position.x = nx;
+            if (canY) position.y = ny;
             form.setPosition(position);
         }
+    }
+
+    private boolean isInsideWalkable(float cx, float cy) {
+        for (Polygon zone : walkableZones) {
+            if (zone.contains(cx, cy)) return true;
+        }
+        return false;
     }
 
     public Vector2 getPosition() { return position; }
