@@ -22,6 +22,11 @@ public class Hero implements Person {
     private final Animation<TextureRegion> idleAnimation;
     private final Animation<TextureRegion> runAnimation;
     private Animation<TextureRegion> currentAnimation;
+    private final Animation<TextureRegion> runUpAnimation;
+    private final Animation<TextureRegion> runDownAnimation;
+
+    private enum MoveDir { IDLE, LEFT, RIGHT, UP, DOWN }
+    private MoveDir lastDir = MoveDir.IDLE;
     private float stateTime;
 
     private final Vector2 position = new Vector2();
@@ -37,6 +42,8 @@ public class Hero implements Person {
         runAnimation = AnimationLoader.fromFiles(0.12f,
             "gg2/run1.png", "gg2/run2.png", "gg2/run3.png", "gg2/run4.png");
         currentAnimation = idleAnimation;
+        runUpAnimation   = AnimationLoader.fromFiles(0.12f, "gg2/run_up1.png", "gg2/run_up2.png");
+        runDownAnimation = AnimationLoader.fromFiles(0.12f, "gg2/run_down1.png", "gg2/run_down2.png");
 
         position.set(x, y);
         form = new Rectangle(x, y, DRAW_W, DRAW_H);
@@ -63,29 +70,38 @@ public class Hero implements Person {
     public void dispose() {
         AnimationLoader.dispose(idleAnimation);
         AnimationLoader.dispose(runAnimation);
+        AnimationLoader.dispose(runUpAnimation);
+        AnimationLoader.dispose(runDownAnimation);
     }
 
     public void moveTo(Vector2 direction) {
         isMoving = !direction.isZero();
-        if (direction.x > 0) isForward = true;
-        else if (direction.x < 0) isForward = false;
-        currentAnimation = isMoving ? runAnimation : idleAnimation;
+
+        if (!isMoving) {
+            lastDir = MoveDir.IDLE;
+            currentAnimation = idleAnimation;
+        } else if (Math.abs(direction.y) > Math.abs(direction.x)) {
+            if (direction.y > 0) { lastDir = MoveDir.UP;   currentAnimation = runUpAnimation; }
+            else                 { lastDir = MoveDir.DOWN;  currentAnimation = runDownAnimation; }
+        } else {
+            if (direction.x > 0) { lastDir = MoveDir.RIGHT; isForward = true; }
+            else                  { lastDir = MoveDir.LEFT;  isForward = false; }
+            currentAnimation = runAnimation;
+        }
 
         if (isMoving) {
             float delta = Gdx.graphics.getDeltaTime();
             float nx = position.x + direction.x * SPEED * delta;
             float ny = position.y + direction.y * SPEED * delta;
 
-            // X axis — нижняя кромка (Y неизменна), 3 точки.
             float bottomY = position.y;
-            boolean canX = isInsideWalkable(nx, bottomY)
-                        && isInsideWalkable(nx + DRAW_W / 2f, bottomY)
-                        && isInsideWalkable(nx + DRAW_W, bottomY);
+            boolean canX = isInsideWalkable(nx,               bottomY)
+                               && isInsideWalkable(nx + DRAW_W / 2f, bottomY)
+                               && isInsideWalkable(nx + DRAW_W,      bottomY);
 
-            // Y axis — новая нижняя кромка (X неизменна), 3 точки.
-            boolean canY = isInsideWalkable(position.x, ny)
-                        && isInsideWalkable(position.x + DRAW_W / 2f, ny)
-                        && isInsideWalkable(position.x + DRAW_W, ny);
+            boolean canY = isInsideWalkable(position.x,               ny)
+                               && isInsideWalkable(position.x + DRAW_W / 2f, ny)
+                               && isInsideWalkable(position.x + DRAW_W,      ny);
 
             if (canX) position.x = nx;
             if (canY) position.y = ny;
