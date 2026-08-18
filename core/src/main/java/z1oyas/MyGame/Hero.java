@@ -9,13 +9,9 @@ import com.badlogic.gdx.math.Vector2;
 
 public class Hero implements Person {
 
-    // Хитбокс: базовый кадр gg2/idle1.png = 145×204 px ⇒ world units = px / 16 (unitScale 1/16f).
-    public static final float HERO_W = 145f / 16f;  // 9.0625
-    public static final float HERO_H = 204f / 16f;  // 12.75
-
-    // Визуальный размер спрайта (world units); коллизия остаётся HERO_W × HERO_H.
-    private static final float DRAW_W = 2f;
-    private static final float DRAW_H = 3f;
+    // Размер спрайта: отрисовка и коллизия совпадают (world units).
+    private static final float DRAW_W = 3f;
+    private static final float DRAW_H = 4f;
 
     // Скорость движения (world units в секунду).
     private static final float SPEED = 5f;
@@ -38,7 +34,7 @@ public class Hero implements Person {
         currentAnimation = idleAnimation;
 
         position.set(x, y);
-        form = new Rectangle(x, y, HERO_W, HERO_H);
+        form = new Rectangle(x, y, DRAW_W, DRAW_H);
     }
 
     @Override
