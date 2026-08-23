@@ -1,0 +1,16 @@
+apply plugin: 'application'
+
+sourceCompatibility = 11
+
+mainClassName = 'z1oyas.MyGame.lwjgl3.Lwjgl3Launcher'
+
+dependencies {
+  implementation project(':core')
+  implementation "com.badlogicgames.gdx:gdx-backend-lwjgl3:$gdxVersion"
+  implementation "com.badlogicgames.gdx:gdx-platform:$gdxVersion:natives-desktop"
+}
+
+run {
+  workingDir = rootProject.file('assets')
+  setIgnoreExitValue(true)
+}

@@ -43,10 +43,11 @@ public class KeyboardAdapter extends InputAdapter {
     public Vector2 getDirection() {
         direction.set(0, 0);
 
-        if (leftPressed) direction.add(-5, 0);
-        if (rightPressed) direction.add(5, 0);
-        if (upPressed) direction.add(0, 5);
-        if (downPressed) direction.add(0, -5);
+        // Единичное направление; скорость применяется в Hero.moveTo с учётом delta.
+        if (leftPressed) direction.add(-1, 0);
+        if (rightPressed) direction.add(1, 0);
+        if (upPressed) direction.add(0, 1);
+        if (downPressed) direction.add(0, -1);
 
         return direction;
     }

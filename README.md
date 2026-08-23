@@ -8,6 +8,7 @@ This project was generated with a template including simple application launcher
 
 - `core`: Main module with the application logic shared by all platforms.
 - `html`: Web platform using GWT and WebGL. Supports only Java projects.
+- `lwjgl3`: Desktop platform using LWJGL3.
 
 ## Gradle
 
@@ -26,6 +27,7 @@ Useful Gradle tasks and flags:
 - `eclipse`: generates Eclipse project data.
 - `html:dist`: compiles GWT sources. The compiled application can be found at `html/build/dist`: you can use any HTTP server to deploy it.
 - `html:superDev`: compiles GWT sources and runs the application in SuperDev mode. It will be available at [localhost:8080/html](http://localhost:8080/html). Use only during development.
+- `lwjgl3:run`: runs the desktop application (LWJGL3). On Windows use `gradlew.bat lwjgl3:run`.
 - `idea`: generates IntelliJ project data.
 - `test`: runs unit tests (if any).
 
