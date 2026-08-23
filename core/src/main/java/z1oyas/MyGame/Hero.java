@@ -4,113 +4,118 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.g2d.Animation;
 import com.badlogic.gdx.graphics.g2d.Batch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
+import com.badlogic.gdx.math.Polygon;
 import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.math.Vector2;
+import com.badlogic.gdx.utils.Array;
 
-// класс объектов на поле: конфеты
+public class Hero implements Person {
 
-public class Hero implements Person, Animated {
-    Animation<TextureRegion> walkAnimation;
-    Animation<TextureRegion> cheersAnimation;
+    // Размер спрайта: отрисовка и коллизия совпадают (world units).
+    // Ширина 2f соответствует ширине walkable-коридора (~2 тайла).
+    private static final float DRAW_W = 2f;
+    private static final float DRAW_H = 3f;
 
-    private final float size = 64;
-    private final float halfSize = size / 2;
+    // Скорость движения (world units в секунду).
+    private static final float SPEED = 5f;
+
+    private final Animation<TextureRegion> idleAnimation;
+    private final Animation<TextureRegion> runAnimation;
+    private Animation<TextureRegion> currentAnimation;
+    private final Animation<TextureRegion> runUpAnimation;
+    private final Animation<TextureRegion> runDownAnimation;
+
+    private enum MoveDir { IDLE, LEFT, RIGHT, UP, DOWN }
+    private MoveDir lastDir = MoveDir.IDLE;
+    private float stateTime;
 
     private final Vector2 position = new Vector2();
-    private final Vector2 angle = new Vector2();
-    private float stateTime;
-    Rectangle form;
-
-    private final static int FRAME_COLS = 4;
-    private final static int FRAME_ROWS = 2;
-
+    private final Array<Polygon> walkableZones;
+    private Rectangle form;
     private boolean isMoving;
-    private boolean isForvard;
+    private boolean isForward = true;
 
-    public Hero(float x, float y, String textureCheerName, String textureWalkName) {
-        //подготавливаем все движения персонажей
-        form = new Rectangle(x,y,size,size);
-        walkAnimation = makeAnimationPersona(textureWalkName,FRAME_COLS,FRAME_ROWS, 0.15f);
-        cheersAnimation = makeAnimationPersona(textureCheerName, FRAME_COLS,FRAME_ROWS,0.15f);
-//        texture = new Texture(textureName);
-//        textureRegion = new TextureRegion(texture);
-        stateTime = 0f;
+    public Hero(float x, float y, Array<Polygon> walkableZones) {
+        this.walkableZones = walkableZones;
+        idleAnimation = AnimationLoader.fromFiles(0.25f,
+            "gg2/idle1.png", "gg2/idle2.png");
+        runAnimation = AnimationLoader.fromFiles(0.12f,
+            "gg2/run1.png", "gg2/run2.png", "gg2/run3.png", "gg2/run4.png");
+        currentAnimation = idleAnimation;
+        runUpAnimation   = AnimationLoader.fromFiles(0.12f, "gg2/run_up1.png", "gg2/run_up2.png");
+        runDownAnimation = AnimationLoader.fromFiles(0.12f, "gg2/run_down1.png", "gg2/run_down2.png");
+
         position.set(x, y);
-        isMoving = false;
-        isForvard =true;
+        form = new Rectangle(x, y, DRAW_W, DRAW_H);
+
+        // Спавн вне walkable-зоны (по нижней кромке): предупреждение, но не блокируем спавн.
+        boolean spawnInside = isInsideWalkable(position.x, position.y)
+                           && isInsideWalkable(position.x + DRAW_W / 2f, position.y)
+                           && isInsideWalkable(position.x + DRAW_W, position.y);
+        if (!spawnInside) {
+            Gdx.app.log("Hero", "Спавн (" + x + ", " + y + ") вне walkable-зоны");
+        }
     }
+
     @Override
     public void render(Batch batch) {
         stateTime += Gdx.graphics.getDeltaTime();
-        TextureRegion currentFrame;
-        if(isMoving){
-            currentFrame = renderAnimationPersona(walkAnimation,stateTime);
-            }
-        else {
-            currentFrame = walkAnimation.getKeyFrame(0);
-        }
-        //batch.draw(currentFrame,position.x,position.y);
-            batch.draw(
-                currentFrame,
-                position.x,
-                position.y,
-                halfSize,
-                halfSize,
-                size,
-                size,
-                1,
-                1,
-                angle.angleDeg()
-            );
+        TextureRegion frame = currentAnimation.getKeyFrame(stateTime, true);
+        float sx = isForward ? 1f : -1f; // разворот через scaleX, без мутации кадров
+        batch.draw(frame, position.x, position.y,
+            DRAW_W / 2f, DRAW_H / 2f, DRAW_W, DRAW_H, sx, 1f, 0f);
     }
-//
+
     @Override
     public void dispose() {
-        if (walkAnimation != null) {
-            TextureRegion[] frames = walkAnimation.getKeyFrames();
-            if (frames != null && frames.length > 0 && frames[0] != null) {
-                frames[0].getTexture().dispose();
-            }
-        }
-        if (cheersAnimation != null) {
-            TextureRegion[] frames = cheersAnimation.getKeyFrames();
-            if (frames != null && frames.length > 0 && frames[0] != null) {
-                frames[0].getTexture().dispose();
-            }
-        }
+        AnimationLoader.dispose(idleAnimation);
+        AnimationLoader.dispose(runAnimation);
+        AnimationLoader.dispose(runUpAnimation);
+        AnimationLoader.dispose(runDownAnimation);
     }
 
     public void moveTo(Vector2 direction) {
         isMoving = !direction.isZero();
 
-        if (direction.x>0&&!isForvard){ //вправо, рожа влево
-            flipDirectionFrame();
-            isForvard = true;
+        if (!isMoving) {
+            lastDir = MoveDir.IDLE;
+            currentAnimation = idleAnimation;
+        } else if (Math.abs(direction.y) > Math.abs(direction.x)) {
+            if (direction.y > 0) { lastDir = MoveDir.UP;   currentAnimation = runUpAnimation; }
+            else                 { lastDir = MoveDir.DOWN;  currentAnimation = runDownAnimation; }
+        } else {
+            if (direction.x > 0) { lastDir = MoveDir.RIGHT; isForward = true; }
+            else                  { lastDir = MoveDir.LEFT;  isForward = false; }
+            currentAnimation = runAnimation;
         }
-        else if (direction.x<0&&isForvard){ //влево, рожа вправо
-            flipDirectionFrame();
-            isForvard = false;
-        }
-        if (isMoving)  {
-            position.add(direction);
-            form.setPosition(position);//подвинули наш квадрат
+
+        if (isMoving) {
+            float delta = Gdx.graphics.getDeltaTime();
+            float nx = position.x + direction.x * SPEED * delta;
+            float ny = position.y + direction.y * SPEED * delta;
+
+            float bottomY = position.y;
+            boolean canX = isInsideWalkable(nx,               bottomY)
+                               && isInsideWalkable(nx + DRAW_W / 2f, bottomY)
+                               && isInsideWalkable(nx + DRAW_W,      bottomY);
+
+            boolean canY = isInsideWalkable(position.x,               ny)
+                               && isInsideWalkable(position.x + DRAW_W / 2f, ny)
+                               && isInsideWalkable(position.x + DRAW_W,      ny);
+
+            if (canX) position.x = nx;
+            if (canY) position.y = ny;
+            form.setPosition(position);
         }
     }
 
-//    public void rotateTo(Vector2 mousePos) {
-//        angle.set(mousePos).sub(position.x + halfSize, position.y + halfSize);
-//    }
-    private  void flipDirectionFrame(){
-        for(TextureRegion frame : walkAnimation.getKeyFrames()){
-            frame.flip(true,false);
+    private boolean isInsideWalkable(float cx, float cy) {
+        for (Polygon zone : walkableZones) {
+            if (zone.contains(cx, cy)) return true;
         }
+        return false;
     }
 
-    public Vector2 getPosition() {
-        return position;
-    }
-    public Rectangle getBoundares() {
-        return form;
-    }
-
+    public Vector2 getPosition() { return position; }
+    public Rectangle getBoundares() { return form; }
 }

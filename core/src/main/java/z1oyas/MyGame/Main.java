@@ -4,11 +4,15 @@ import com.badlogic.gdx.ApplicationAdapter;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+import com.badlogic.gdx.maps.MapLayer;
 import com.badlogic.gdx.maps.MapProperties;
+import com.badlogic.gdx.maps.objects.PolygonMapObject;
 import com.badlogic.gdx.maps.tiled.TiledMap;
 import com.badlogic.gdx.maps.tiled.TmxMapLoader;
 import com.badlogic.gdx.maps.tiled.renderers.OrthogonalTiledMapRenderer;
 import com.badlogic.gdx.math.MathUtils;
+import com.badlogic.gdx.math.Polygon;
+import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.ScreenUtils;
 
 import java.util.ArrayList;
@@ -41,14 +45,43 @@ public class Main extends ApplicationAdapter {
         mapWidthWorld = mapWidthTiles * tileWidth * unitScale;
         mapHeightWorld = mapHeightTiles * tileHeight * unitScale;
 
+        // Walkable-зоны: полигоны объектного слоя "walkable" (пиксели → мировые единицы).
+        Array<Polygon> walkableZones = new Array<>();
+        MapLayer walkableLayer = map.getLayers().get("walkable");
+        if (walkableLayer != null) {
+            for (PolygonMapObject obj : walkableLayer.getObjects().getByType(PolygonMapObject.class)) {
+                float[] px = obj.getPolygon().getTransformedVertices();
+                float[] world = new float[px.length];
+                for (int i = 0; i < px.length; i++) {
+                    world[i] = px[i] * unitScale;
+                }
+                walkableZones.add(new Polygon(world));
+            }
+        }
+
         camera = new OrthographicCamera();
         camera.setToOrtho(false, 50, 30);
 
         Gdx.input.setInputProcessor(inputProcessor);
         batch = new SpriteBatch();
 
-        me = new Hero(10, 340,"cheersSprite1.png","sprite1.png");
-        tower = new Tower(600,300,"tower1.png","towerfind1.png");
+        // Спавн героя в самой левой точке walkable-слоя.
+        float spawnX = Float.MAX_VALUE;
+        float spawnY = 0f;
+        for (Polygon zone : walkableZones) {
+            float[] verts = zone.getTransformedVertices();
+            for (int i = 0; i < verts.length; i += 2) {
+                if (verts[i] < spawnX) {
+                    spawnX = verts[i];
+                    spawnY = verts[i + 1];
+                }
+            }
+        }
+        // Clamp so hero doesn't spawn below map
+        spawnY = Math.max(spawnY, 0f);
+
+        me = new Hero(spawnX, spawnY, walkableZones);
+        tower = new Tower(17, 18);
 //        List<Person> newEnemies = IntStream.range(0, 5)
 //            .mapToObj(i -> {
 //                int x = MathUtils.random(Gdx.graphics.getWidth());
@@ -65,12 +98,12 @@ public class Main extends ApplicationAdapter {
         ScreenUtils.clear(1, 1, 1, 1);
 
         me.moveTo(inputProcessor.getDirection());
-        tower.findHeroChecker(me.getBoundares());
+        tower.update(me.getBoundares());
 
-        // камера следует за героем (пиксели → мировые единицы)
+        // камера следует за героем (мировые единицы)
         camera.position.set(
-            me.getPosition().x * unitScale,
-            me.getPosition().y * unitScale,
+            me.getPosition().x,
+            me.getPosition().y,
             0
         );
 
@@ -94,9 +127,8 @@ public class Main extends ApplicationAdapter {
         renderer.setView(camera);
         renderer.render();
 
-        // проекция batch с учётом unitScale, чтобы пиксельные координаты
-        // спрайтов совпадали с мировыми координатами карты
-        batch.setProjectionMatrix(camera.combined.cpy().scale(unitScale, unitScale, 1f));
+        // проекция batch в мировых координатах (камера 50×30 world units)
+        batch.setProjectionMatrix(camera.combined);
 
         batch.begin();
         me.render(batch);
