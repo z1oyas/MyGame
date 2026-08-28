@@ -162,9 +162,12 @@ public class GameScreen implements Screen {
             me.playHappyAnimation();
             Gdx.app.log("GAME", "Level finished!");
         }
+        boolean heroDetected = false;
         for (Tower t : towers) {
             t.update(me.getBoundares(), me.isInvisible());
+            if (t.isFindingHero()) heroDetected = true;
         }
+        me.setDetected(heroDetected);
 
         camera.position.set(
             me.getPosition().x,

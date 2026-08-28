@@ -36,6 +36,7 @@ public class Hero implements Person {
     private final Animation<TextureRegion> invisibleRunDownAnimation;
     private final Animation<TextureRegion> eatAnimation;
     private final Animation<TextureRegion> happyAnimation;
+    private final Animation<TextureRegion> detectedAnimation;
 
     private enum MoveDir { IDLE, LEFT, RIGHT, UP, DOWN }
     private MoveDir lastDir = MoveDir.IDLE;
@@ -49,6 +50,7 @@ public class Hero implements Person {
     private boolean isMoving;
     private boolean isForward = true;
     private boolean finished = false;
+    private boolean detected = false;
 
     public Hero(float x, float y, Array<Rectangle> blockedZones, float mapWidth, float mapHeight) {
         this.blockedZones = blockedZones;
@@ -67,6 +69,7 @@ public class Hero implements Person {
         invisibleRunDownAnimation = AnimationLoader.fromFiles(0.12f, "gg2/invisible_run_down1.png", "gg2/invisible_run_down2.png");
         eatAnimation = AnimationLoader.fromFiles(0.25f, "gg2/eat.png", "gg2/eat2.png");
         happyAnimation = AnimationLoader.fromFiles(0.25f, "gg2/happy_full_health.png");
+        detectedAnimation = AnimationLoader.fromFiles(0.25f, "gg2/detected1.png", "gg2/detected2.png");
 
         position.set(x, y);
         form = new Rectangle(x, y, DRAW_W, DRAW_H);
@@ -101,6 +104,7 @@ public class Hero implements Person {
         AnimationLoader.dispose(invisibleRunDownAnimation);
         AnimationLoader.dispose(eatAnimation);
         AnimationLoader.dispose(happyAnimation);
+        AnimationLoader.dispose(detectedAnimation);
     }
 
     public void moveTo(Vector2 direction) {
@@ -120,9 +124,11 @@ public class Hero implements Person {
             else                  { lastDir = MoveDir.LEFT;  isForward = false; }
         }
 
-        // Приоритет анимации: eat -> невидимость -> обычная.
+        // Приоритет анимации: eat -> detected -> невидимость -> обычная.
         if (eatTimer > 0) {
             currentAnimation = eatAnimation;
+        } else if (detected && !isInvisible()) {
+            currentAnimation = detectedAnimation;
         } else if (isInvisible()) {
             switch (lastDir) {
                 case UP:   currentAnimation = invisibleRunUpAnimation; break;
@@ -194,6 +200,10 @@ public class Hero implements Person {
         finished = true;
         stateTime = 0f;
         currentAnimation = happyAnimation;
+    }
+
+    public void setDetected(boolean detected) {
+        this.detected = detected;
     }
 
     public boolean isInvisible() {
