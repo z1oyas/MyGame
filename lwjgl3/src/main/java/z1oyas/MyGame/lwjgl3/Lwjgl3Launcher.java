@@ -1,8 +1,7 @@
 package z1oyas.MyGame.lwjgl3;
-
 import com.badlogic.gdx.backends.lwjgl3.Lwjgl3Application;
 import com.badlogic.gdx.backends.lwjgl3.Lwjgl3ApplicationConfiguration;
-import z1oyas.MyGame.Main;
+import z1oyas.MyGame.MyGame;
 
 public class Lwjgl3Launcher {
     public static void main(String[] args) {
@@ -11,6 +10,6 @@ public class Lwjgl3Launcher {
         config.setWindowedMode(800, 480);
         config.setResizable(false);
         config.setForegroundFPS(60);
-        new Lwjgl3Application(new Main(), config);
+        new Lwjgl3Application(new MyGame(), config); // было: new Main()
     }
 }

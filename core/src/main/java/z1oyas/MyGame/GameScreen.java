@@ -1,27 +1,29 @@
 package z1oyas.MyGame;
 
-import com.badlogic.gdx.ApplicationAdapter;
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.Screen;
 import com.badlogic.gdx.graphics.OrthographicCamera;
-import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.maps.MapLayer;
+import com.badlogic.gdx.maps.MapObject;
 import com.badlogic.gdx.maps.MapProperties;
 import com.badlogic.gdx.maps.objects.PolygonMapObject;
+import com.badlogic.gdx.maps.objects.RectangleMapObject;
 import com.badlogic.gdx.maps.tiled.TiledMap;
 import com.badlogic.gdx.maps.tiled.TmxMapLoader;
 import com.badlogic.gdx.maps.tiled.renderers.OrthogonalTiledMapRenderer;
 import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.Polygon;
+import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.ScreenUtils;
 
 import java.util.ArrayList;
 import java.util.List;
 
-public class Main extends ApplicationAdapter {
-    SpriteBatch batch;
+public class GameScreen implements Screen {
+    private final MyGame game;
     private Hero me;
-    private  Tower tower;
+    private Tower tower;
     private final List<Hero> enemies = new ArrayList<>();
     float unitScale = 1 / 16f;
     OrthogonalTiledMapRenderer renderer;
@@ -29,11 +31,17 @@ public class Main extends ApplicationAdapter {
     TiledMap map;
     private float mapWidthWorld;
     private float mapHeightWorld;
+    private final List<Collectible> collectibles = new ArrayList<>();
+    private FinishZone finishZone;
 
     private KeyboardAdapter inputProcessor = new KeyboardAdapter();
 
+    public GameScreen(MyGame game) {
+        this.game = game;
+    }
+
     @Override
-    public void create () {
+    public void show () {
         map = new TmxMapLoader().load("map_title.tmx");
         renderer = new OrthogonalTiledMapRenderer(map, unitScale);
 
@@ -45,7 +53,6 @@ public class Main extends ApplicationAdapter {
         mapWidthWorld = mapWidthTiles * tileWidth * unitScale;
         mapHeightWorld = mapHeightTiles * tileHeight * unitScale;
 
-        // Walkable-зоны: полигоны объектного слоя "walkable" (пиксели → мировые единицы).
         Array<Polygon> walkableZones = new Array<>();
         MapLayer walkableLayer = map.getLayers().get("walkable");
         if (walkableLayer != null) {
@@ -63,9 +70,7 @@ public class Main extends ApplicationAdapter {
         camera.setToOrtho(false, 50, 30);
 
         Gdx.input.setInputProcessor(inputProcessor);
-        batch = new SpriteBatch();
 
-        // Спавн героя в самой левой точке walkable-слоя.
         float spawnX = Float.MAX_VALUE;
         float spawnY = 0f;
         for (Polygon zone : walkableZones) {
@@ -77,37 +82,76 @@ public class Main extends ApplicationAdapter {
                 }
             }
         }
-        // Clamp so hero doesn't spawn below map
         spawnY = Math.max(spawnY, 0f);
 
         me = new Hero(spawnX, spawnY, walkableZones);
         tower = new Tower(17, 18);
-//        List<Person> newEnemies = IntStream.range(0, 5)
-//            .mapToObj(i -> {
-//                int x = MathUtils.random(Gdx.graphics.getWidth());
-//                int y = MathUtils.random(Gdx.graphics.getHeight());
-//
-//                return new Person(x, y, "sprite_bad_guys.png","sprite_bad_guys.png");
-//            })
-//            .collect(Collectors.toList());
-//        enemies.addAll(newEnemies);
+
+        // --- загрузка ягод ---
+        MapLayer berriesLayer = map.getLayers().get("berries");
+        if (berriesLayer != null) {
+            for (MapObject obj : berriesLayer.getObjects()) {
+                // точечный объект хранит координаты напрямую в свойствах
+                float bx = obj.getProperties().get("x", Float.class) * unitScale;
+                float by = obj.getProperties().get("y", Float.class) * unitScale;
+                collectibles.add(new Berry(bx, by));
+            }
+        }
+        // --- загрузка конфет ---
+        MapLayer candiesLayer = map.getLayers().get("candies");
+        if (candiesLayer != null) {
+            for (MapObject obj : candiesLayer.getObjects()) {
+                float cx = obj.getProperties().get("x", Float.class) * unitScale;
+                float cy = obj.getProperties().get("y", Float.class) * unitScale;
+                collectibles.add(new Candy(cx, cy));
+            }
+        }
+
+// --- загрузка финиша ---
+        MapLayer finishLayer = map.getLayers().get("finish");
+        if (finishLayer != null) {
+            for (RectangleMapObject obj : finishLayer.getObjects().getByType(RectangleMapObject.class)) {
+                Rectangle r = obj.getRectangle();
+                finishZone = new FinishZone(
+                    r.x * unitScale,
+                    r.y * unitScale,
+                    r.width * unitScale,
+                    r.height * unitScale
+                );
+                break; // финиш один на уровень
+            }
+        }
     }
 
     @Override
-    public void render () {
+    public void render (float delta) {
         ScreenUtils.clear(1, 1, 1, 1);
 
+        me.update(delta);
         me.moveTo(inputProcessor.getDirection());
+        // проверяем подбор предметов
+        Rectangle heroBounds = me.getBoundares();
+        for (Collectible c : collectibles) {
+            if (!c.isCollected() && c.overlaps(heroBounds)) {
+                c.onCollect(me);
+            }
+        }
+        // удаляем собранные предметы
+        collectibles.removeIf(Collectible::isCollected);
+
+        // проверяем финиш
+        if (finishZone != null && finishZone.checkTrigger(heroBounds)) {
+            // пока просто логируем — анимацию добавим на следующем шаге
+            Gdx.app.log("GAME", "Level finished!");
+        }
         tower.update(me.getBoundares());
 
-        // камера следует за героем (мировые единицы)
         camera.position.set(
             me.getPosition().x,
             me.getPosition().y,
             0
         );
 
-        // клампинг камеры по границам карты
         float halfW = camera.viewportWidth / 2f;
         float halfH = camera.viewportHeight / 2f;
         if (mapWidthWorld > camera.viewportWidth) {
@@ -123,28 +167,46 @@ public class Main extends ApplicationAdapter {
 
         camera.update();
 
-        // setView ДО render (исправление порядка)
         renderer.setView(camera);
         renderer.render();
 
-        // проекция batch в мировых координатах (камера 50×30 world units)
-        batch.setProjectionMatrix(camera.combined);
+        game.batch.setProjectionMatrix(camera.combined);
+        game.batch.begin();
+        me.render(game.batch);
+        tower.render(game.batch);
+        for (Collectible c : collectibles) {
+            c.render(game.batch);
+        }
+        if (finishZone != null) {
+            finishZone.render(game.batch);
+        }
+        game.batch.end();
+    }
 
-        batch.begin();
-        me.render(batch);
-        tower.render(batch);
-//        enemies.forEach(enemy -> {
-//            enemy.render(batch);
-////            enemy.rotateTo(me.getPosition());
-//        });
-        batch.end();
+    @Override
+    public void resize (int width, int height) {
+    }
+
+    @Override
+    public void pause () {
+    }
+
+    @Override
+    public void resume () {
+    }
+
+    @Override
+    public void hide () {
     }
 
     @Override
     public void dispose () {
-        batch.dispose();
         me.dispose();
         tower.dispose();
+        for (Collectible c : collectibles) {
+            if (c instanceof Berry) ((Berry) c).dispose();
+            if (c instanceof Candy) ((Candy) c).dispose();
+        }
         renderer.dispose();
         map.dispose();
     }
