@@ -6,13 +6,11 @@ import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.maps.MapLayer;
 import com.badlogic.gdx.maps.MapObject;
 import com.badlogic.gdx.maps.MapProperties;
-import com.badlogic.gdx.maps.objects.PolygonMapObject;
 import com.badlogic.gdx.maps.objects.RectangleMapObject;
 import com.badlogic.gdx.maps.tiled.TiledMap;
 import com.badlogic.gdx.maps.tiled.TmxMapLoader;
 import com.badlogic.gdx.maps.tiled.renderers.OrthogonalTiledMapRenderer;
 import com.badlogic.gdx.math.MathUtils;
-import com.badlogic.gdx.math.Polygon;
 import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.ScreenUtils;
@@ -23,7 +21,7 @@ import java.util.List;
 public class GameScreen implements Screen {
     private final MyGame game;
     private Hero me;
-    private Tower tower;
+    private final List<Tower> towers = new ArrayList<>();
     private final List<Hero> enemies = new ArrayList<>();
     float unitScale = 1 / 16f;
     OrthogonalTiledMapRenderer renderer;
@@ -53,17 +51,21 @@ public class GameScreen implements Screen {
         mapWidthWorld = mapWidthTiles * tileWidth * unitScale;
         mapHeightWorld = mapHeightTiles * tileHeight * unitScale;
 
-        Array<Polygon> walkableZones = new Array<>();
-        MapLayer walkableLayer = map.getLayers().get("walkable");
-        if (walkableLayer != null) {
-            for (PolygonMapObject obj : walkableLayer.getObjects().getByType(PolygonMapObject.class)) {
-                float[] px = obj.getPolygon().getTransformedVertices();
-                float[] world = new float[px.length];
-                for (int i = 0; i < px.length; i++) {
-                    world[i] = px[i] * unitScale;
-                }
-                walkableZones.add(new Polygon(world));
+        // --- загрузка блокирующих (непроходимых) зон ---
+        Array<Rectangle> blockedZones = new Array<>();
+        MapLayer blockedLayer = map.getLayers().get("blocked");
+        if (blockedLayer != null) {
+            for (RectangleMapObject obj : blockedLayer.getObjects().getByType(RectangleMapObject.class)) {
+                Rectangle r = obj.getRectangle();
+                blockedZones.add(new Rectangle(
+                    r.x * unitScale,
+                    r.y * unitScale,
+                    r.width * unitScale,
+                    r.height * unitScale
+                ));
             }
+        } else {
+            Gdx.app.log("GameScreen", "Слой 'blocked' не найден — коллизии отсутствуют");
         }
 
         camera = new OrthographicCamera();
@@ -71,21 +73,37 @@ public class GameScreen implements Screen {
 
         Gdx.input.setInputProcessor(inputProcessor);
 
-        float spawnX = Float.MAX_VALUE;
+        // Спавн героя — точка, отмеченная на карте слоем "start".
+        float spawnX = 0f;
         float spawnY = 0f;
-        for (Polygon zone : walkableZones) {
-            float[] verts = zone.getTransformedVertices();
-            for (int i = 0; i < verts.length; i += 2) {
-                if (verts[i] < spawnX) {
-                    spawnX = verts[i];
-                    spawnY = verts[i + 1];
-                }
+        boolean hasStart = false;
+        MapLayer startLayer = map.getLayers().get("start");
+        if (startLayer != null) {
+            for (RectangleMapObject obj : startLayer.getObjects().getByType(RectangleMapObject.class)) {
+                Rectangle r = obj.getRectangle();
+                spawnX = r.x * unitScale;
+                spawnY = r.y * unitScale;
+                hasStart = true;
+                break; // старт один на уровень
             }
         }
-        spawnY = Math.max(spawnY, 0f);
+        if (!hasStart) {
+            Gdx.app.log("GameScreen", "Слой 'start' не найден — спавн по умолчанию (0,0)");
+        }
 
-        me = new Hero(spawnX, spawnY, walkableZones);
-        tower = new Tower(17, 18);
+        me = new Hero(spawnX, spawnY, blockedZones, mapWidthWorld, mapHeightWorld);
+
+        // --- загрузка вышек (точки на слое "tower") ---
+        MapLayer towerLayer = map.getLayers().get("tower");
+        if (towerLayer != null) {
+            for (MapObject obj : towerLayer.getObjects()) {
+                float tx = obj.getProperties().get("x", Float.class) * unitScale;
+                float ty = obj.getProperties().get("y", Float.class) * unitScale;
+                towers.add(new Tower(tx, ty));
+            }
+        } else {
+            Gdx.app.log("GameScreen", "Слой 'tower' не найден — вышки не заспавнены");
+        }
 
         // --- загрузка ягод ---
         MapLayer berriesLayer = map.getLayers().get("berries");
@@ -107,7 +125,7 @@ public class GameScreen implements Screen {
             }
         }
 
-// --- загрузка финиша ---
+        // --- загрузка финиша ---
         MapLayer finishLayer = map.getLayers().get("finish");
         if (finishLayer != null) {
             for (RectangleMapObject obj : finishLayer.getObjects().getByType(RectangleMapObject.class)) {
@@ -141,10 +159,12 @@ public class GameScreen implements Screen {
 
         // проверяем финиш
         if (finishZone != null && finishZone.checkTrigger(heroBounds)) {
-            // пока просто логируем — анимацию добавим на следующем шаге
+            me.playHappyAnimation();
             Gdx.app.log("GAME", "Level finished!");
         }
-        tower.update(me.getBoundares(), me.isInvisible());
+        for (Tower t : towers) {
+            t.update(me.getBoundares(), me.isInvisible());
+        }
 
         camera.position.set(
             me.getPosition().x,
@@ -173,7 +193,9 @@ public class GameScreen implements Screen {
         game.batch.setProjectionMatrix(camera.combined);
         game.batch.begin();
         me.render(game.batch);
-        tower.render(game.batch);
+        for (Tower t : towers) {
+            t.render(game.batch);
+        }
         for (Collectible c : collectibles) {
             c.render(game.batch);
         }
@@ -202,7 +224,9 @@ public class GameScreen implements Screen {
     @Override
     public void dispose () {
         me.dispose();
-        tower.dispose();
+        for (Tower t : towers) {
+            t.dispose();
+        }
         for (Collectible c : collectibles) {
             if (c instanceof Berry) ((Berry) c).dispose();
             if (c instanceof Candy) ((Candy) c).dispose();

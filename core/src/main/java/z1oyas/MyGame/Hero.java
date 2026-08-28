@@ -4,7 +4,6 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.g2d.Animation;
 import com.badlogic.gdx.graphics.g2d.Batch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
-import com.badlogic.gdx.math.Polygon;
 import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.utils.Array;
@@ -36,19 +35,25 @@ public class Hero implements Person {
     private final Animation<TextureRegion> invisibleRunUpAnimation;
     private final Animation<TextureRegion> invisibleRunDownAnimation;
     private final Animation<TextureRegion> eatAnimation;
+    private final Animation<TextureRegion> happyAnimation;
 
     private enum MoveDir { IDLE, LEFT, RIGHT, UP, DOWN }
     private MoveDir lastDir = MoveDir.IDLE;
     private float stateTime;
 
     private final Vector2 position = new Vector2();
-    private final Array<Polygon> walkableZones;
+    private final Array<Rectangle> blockedZones;
+    private final float mapWidth;
+    private final float mapHeight;
     private Rectangle form;
     private boolean isMoving;
     private boolean isForward = true;
+    private boolean finished = false;
 
-    public Hero(float x, float y, Array<Polygon> walkableZones) {
-        this.walkableZones = walkableZones;
+    public Hero(float x, float y, Array<Rectangle> blockedZones, float mapWidth, float mapHeight) {
+        this.blockedZones = blockedZones;
+        this.mapWidth = mapWidth;
+        this.mapHeight = mapHeight;
         idleAnimation = AnimationLoader.fromFiles(0.25f,
             "gg2/idle1.png", "gg2/idle2.png");
         runAnimation = AnimationLoader.fromFiles(0.12f,
@@ -61,16 +66,17 @@ public class Hero implements Person {
         invisibleRunUpAnimation   = AnimationLoader.fromFiles(0.12f, "gg2/invisible_run_up1.png", "gg2/invisible_run_up2.png");
         invisibleRunDownAnimation = AnimationLoader.fromFiles(0.12f, "gg2/invisible_run_down1.png", "gg2/invisible_run_down2.png");
         eatAnimation = AnimationLoader.fromFiles(0.25f, "gg2/eat.png", "gg2/eat2.png");
+        happyAnimation = AnimationLoader.fromFiles(0.25f, "gg2/happy_full_health.png");
 
         position.set(x, y);
         form = new Rectangle(x, y, DRAW_W, DRAW_H);
 
-        // Спавн вне walkable-зоны (по нижней кромке): предупреждение, но не блокируем спавн.
+        // Спавн вне проходимой зоны (по нижней кромке): предупреждение, но не блокируем спавн.
         boolean spawnInside = isInsideWalkable(position.x, position.y)
-                           && isInsideWalkable(position.x + DRAW_W / 2f, position.y)
-                           && isInsideWalkable(position.x + DRAW_W, position.y);
+                                  && isInsideWalkable(position.x + DRAW_W / 2f, position.y)
+                                  && isInsideWalkable(position.x + DRAW_W, position.y);
         if (!spawnInside) {
-            Gdx.app.log("Hero", "Спавн (" + x + ", " + y + ") вне walkable-зоны");
+            Gdx.app.log("Hero", "Спавн (" + x + ", " + y + ") вне проходимой зоны");
         }
     }
 
@@ -94,9 +100,14 @@ public class Hero implements Person {
         AnimationLoader.dispose(invisibleRunUpAnimation);
         AnimationLoader.dispose(invisibleRunDownAnimation);
         AnimationLoader.dispose(eatAnimation);
+        AnimationLoader.dispose(happyAnimation);
     }
 
     public void moveTo(Vector2 direction) {
+        if (finished) {
+            currentAnimation = happyAnimation;
+            return;
+        }
         isMoving = !direction.isZero();
 
         if (!isMoving) {
@@ -152,11 +163,14 @@ public class Hero implements Person {
         }
     }
 
+    // Проходимость теперь определяется "от противного": всё внутри карты
+    // и вне блокирующих прямоугольников считается доступным для ходьбы.
     private boolean isInsideWalkable(float cx, float cy) {
-        for (Polygon zone : walkableZones) {
-            if (zone.contains(cx, cy)) return true;
+        if (cx < 0 || cy < 0 || cx > mapWidth || cy > mapHeight) return false;
+        for (Rectangle block : blockedZones) {
+            if (block.contains(cx, cy)) return false;
         }
-        return false;
+        return true;
     }
 
     public Vector2 getPosition() { return position; }
@@ -174,6 +188,12 @@ public class Hero implements Person {
         eatTimer = EAT_DURATION;
         stateTime = 0f;
         currentAnimation = eatAnimation;
+    }
+
+    public void playHappyAnimation() {
+        finished = true;
+        stateTime = 0f;
+        currentAnimation = happyAnimation;
     }
 
     public boolean isInvisible() {
