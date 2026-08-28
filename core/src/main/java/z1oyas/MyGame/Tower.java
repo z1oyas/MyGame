@@ -147,8 +147,10 @@ public class Tower implements Person {
      * Патруль по циклу LEFT→DOWN→RIGHT→UP; при герое в радиусе ALERT_RADIUS —
      * конус света плавно доворачивается на героя и включается found-анимация корпуса
      * (таймер патруля не тикает, пока герой обнаружен).
+     * Если герой невидим (heroInvisible), обнаружение игнорируется: спрайт found
+     * не включается, вышка продолжает обычный цикл осмотра.
      */
-    public void update(Rectangle heroBounds) {
+    public void update(Rectangle heroBounds, boolean heroInvisible) {
         heroCenter.set(heroBounds.x + heroBounds.width / 2f,
             heroBounds.y + heroBounds.height / 2f);
         towerCenter.set(position.x + DRAW_W / 2f,
@@ -166,7 +168,7 @@ public class Tower implements Person {
         if (angleToHero < 0f) angleToHero += 360f;
         boolean withinCone = angularDiff(lightFacingAngle, angleToHero) <= LIGHT_HALF_FOV_DEG;
 
-        boolean heroInRange = withinDistance && withinCone;
+        boolean heroInRange = withinDistance && withinCone && !heroInvisible;
 
         if (heroInRange) {
             Direction foundDir;

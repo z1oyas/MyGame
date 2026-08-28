@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.10" tiledversion="1.11.0" orientation="orthogonal" renderorder="left-down" width="50" height="30" tilewidth="16" tileheight="16" infinite="0" nextlayerid="7" nextobjectid="12">
+<map version="1.10" tiledversion="1.11.0" orientation="orthogonal" renderorder="left-down" width="50" height="30" tilewidth="16" tileheight="16" infinite="0" nextlayerid="7" nextobjectid="14">
  <editorsettings>
   <export target="map_title2..tmx" format="tmx"/>
  </editorsettings>
@@ -35,6 +35,9 @@
  </objectgroup>
  <objectgroup id="5" name="candies">
   <object id="9" x="303" y="430">
+   <point/>
+  </object>
+  <object id="13" x="322" y="47">
    <point/>
   </object>
  </objectgroup>

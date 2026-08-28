@@ -144,7 +144,7 @@ public class GameScreen implements Screen {
             // пока просто логируем — анимацию добавим на следующем шаге
             Gdx.app.log("GAME", "Level finished!");
         }
-        tower.update(me.getBoundares());
+        tower.update(me.getBoundares(), me.isInvisible());
 
         camera.position.set(
             me.getPosition().x,
